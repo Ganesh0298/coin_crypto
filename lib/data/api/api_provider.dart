@@ -1,0 +1,118 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../utils/app_strings.dart';
+import '../local/secure_storage.dart';
+import '../response/coin_market_list_response.dart';
+import 'logging_interceptor.dart';
+
+class ApiProvider {
+  Dio? _dio;
+
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  ApiProvider() {
+    final BaseOptions options = BaseOptions(
+      baseUrl: AppStrings.baseUrl,
+      receiveTimeout: const Duration(seconds: 60),
+      connectTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 60),
+      validateStatus: (status) => true,
+      followRedirects: false,
+      headers: {
+        'content-type': 'application/json',
+        'x-cg-demo-api-key': AppStrings.coinGeckoApiKey,
+      },
+    );
+
+    _dio = Dio(options);
+
+    _dio?.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (options.path.startsWith('/coins/')) {
+            options.headers.remove('authorization');
+            return handler.next(options);
+          }
+
+          final storageService = await SecureStorageService.instance;
+          final token = await storageService.accessToken;
+
+          if (token != null && token.isNotEmpty) {
+            options.headers['authorization'] = 'Bearer $token';
+          }
+
+          return handler.next(options);
+        },
+      ),
+    );
+
+    _dio?.interceptors.add(LoggingInterceptor());
+  }
+
+  String _handleError(dynamic error) {
+    if (error is DioException) {
+      if (error.response != null) {
+        final data = error.response?.data;
+
+        if (data is Map<String, dynamic>) {
+          return data["message"] ?? data["data"] ?? "Something went wrong";
+        }
+
+        return "Error: ${error.response?.statusCode}";
+      }
+
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+          return "Connection timeout with API server";
+        case DioExceptionType.sendTimeout:
+          return "Send timeout with API server";
+        case DioExceptionType.receiveTimeout:
+          return "Receive timeout with API server";
+        case DioExceptionType.connectionError:
+          return "No internet connection";
+        case DioExceptionType.cancel:
+          return "Request was cancelled";
+        default:
+          return "Unexpected error occurred";
+      }
+    }
+
+    return error.toString();
+  }
+
+  Future<List<CoinMarketListResponse>> fetchCoinsList({
+    int page = 1,
+    int perPage = 10,
+  }) async {
+    try {
+      final response = await _dio!.get(
+        AppStrings.coinList,
+        queryParameters: {
+          'vs_currency': 'usd',
+          'per_page': perPage,
+          'page': page,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data as List<dynamic>;
+
+        return data
+            .map(
+              (json) => CoinMarketListResponse.fromJson(
+            json as Map<String, dynamic>,
+          ),
+        )
+            .toList();
+      }
+
+      throw Exception(
+        'Failed to fetch coins. Status code: ${response.statusCode}',
+      );
+    } catch (e) {
+      throw Exception('Failed to fetch coins: ${_handleError(e)}');
+    }
+  }
+
+}

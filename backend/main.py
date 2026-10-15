@@ -1,16 +1,15 @@
-
 import os
 
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 app = FastAPI(title="Coin Pilot API")
 
 BASE_URL = "https://api.coingecko.com/api/v3"
-API_KEY = os.getenv("CG-ExN7TG3APMb4rr1sPKqxvF1u")
+API_KEY = os.getenv("COINGECKO_API_KEY")
 
 
 async def fetch_data(path, params=None):
