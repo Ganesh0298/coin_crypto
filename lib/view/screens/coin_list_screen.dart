@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/coins_bloc.dart';
@@ -23,6 +24,7 @@ class _CoinListScreenState extends State<CoinListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<CoinMarketListResponse> _displayedCoins = [];
+  String _currentTab = 'All';
 
   @override
   void initState() {
@@ -46,209 +48,236 @@ class _CoinListScreenState extends State<CoinListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ColorResource.appMainBgColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Futuristic Header Banner
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-              decoration: const BoxDecoration(
-                gradient: ColorResource.headerGradient,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(28),
-                  bottomRight: Radius.circular(28),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? const Color(0xFF16161A) : ColorResource.surface;
+    final borderColor = isDark ? const Color(0xFF27272A) : ColorResource.border;
+    final textColor = isDark ? Colors.white : ColorResource.textPrimary;
+    final subTextColor = isDark ? const Color(0xFF9CA3AF) : ColorResource.textSecondary;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              // Top AppBar & Market Header
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+                decoration: const BoxDecoration(
+                  gradient: ColorResource.headerGradient,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x332563EB),
+                      blurRadius: 24,
+                      offset: Offset(0, 12),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x332563EB),
-                    blurRadius: 20,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.18),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.white.withOpacity(0.3)),
-                            ),
-                            child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 26),
-                          ),
-                          const SizedBox(width: 14),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'CoinPilot Terminal',
-                                style: AppStyles.bold.copyWith(
-                                  fontSize: 20,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white.withOpacity(0.35)),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Live Crypto Intelligence & Analytics',
-                                style: AppStyles.regular.copyWith(
-                                  fontSize: 12,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-                        onPressed: () {
-                          _searchController.clear();
-                          context.read<CoinBloc>().add(RefreshCoinsList());
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  // Search Form Widget
-                  SearchFormWidget(
-                    controller: _searchController,
-                    onChanged: (query) {
-                      context.read<CoinBloc>().add(SearchCoins(query: query));
-                    },
-                    onClear: () {
-                      _searchController.clear();
-                      context.read<CoinBloc>().add(SearchCoins(query: ''));
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Market Statistics Quick Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricPill('Market Status', 'Bullish 🟢', Colors.green),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMetricPill('Global Gas', '12 Gwei ⚡', ColorResource.appThemeColor1),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Bloc Consumer / Builder for Coin List
-            Expanded(
-              child: BlocConsumer<CoinBloc, CoinState>(
-                listener: (context, state) {
-                  if (state is CoinListSuccess) {
-                    setState(() {
-                      _displayedCoins = state.coins;
-                    });
-                  } else if (state is MoreCoinsSuccess) {
-                    setState(() {
-                      _displayedCoins = state.coins;
-                    });
-                  } else if (state is CoinSearchSuccess) {
-                    setState(() {
-                      _displayedCoins = state.coins;
-                    });
-                  }
-                },
-                builder: (context, state) {
-                  if (state is CoinLoading && state.loadingFor == 'FetchCoinsList' && _displayedCoins.isEmpty) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(ColorResource.appThemeColor1),
-                      ),
-                    );
-                  }
-
-                  if (state is CoinError && state.errorFor == 'FetchCoinsList' && _displayedCoins.isEmpty) {
-                    return const CustomErrorWidget();
-                  }
-
-                  if (_displayedCoins.isEmpty) {
-                    return const CustomEmptyWidget();
-                  }
-
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      context.read<CoinBloc>().add(RefreshCoinsList());
-                    },
-                    color: ColorResource.appThemeColor1,
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                      itemCount: _displayedCoins.length + (state is MoreCoinsSuccess && state.hasMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index >= _displayedCoins.length) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 20),
-                            child: Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 24),
                             ),
-                          );
-                        }
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'CoinCrypto',
+                                  style: AppStyles.bold.copyWith(
+                                    fontSize: 20,
+                                    color: Colors.white,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                // const SizedBox(height: 2),
+                                // Text(
+                                //   'Global Crypto Terminal',
+                                //   style: AppStyles.regular.copyWith(
+                                //     fontSize: 12,
+                                //     color: Colors.white70,
+                                //   ),
+                                // ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.notifications, color: Colors.white),
+                          onPressed: () {
 
-                        final coin = _displayedCoins[index];
-                        return _buildFuturisticCoinCard(context, coin);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Search Form Widget
+                    SearchFormWidget(
+                      controller: _searchController,
+                      onChanged: (query) {
+                        context.read<CoinBloc>().add(SearchCoins(query: query));
+                      },
+                      onClear: () {
+                        _searchController.clear();
+                        context.read<CoinBloc>().add(SearchCoins(query: ''));
                       },
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 14),
+              // Filter Tabs (All, Trending, Top Gainers, Top Losers)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ['All', 'Trending', 'Top Gainers', 'Top Losers'].map((tab) {
+                      final isSelected = _currentTab == tab;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(tab),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setState(() {
+                              _currentTab = tab;
+                            });
+                            context.read<CoinBloc>().add(FilterCoinsTab(tab));
+                          },
+                          selectedColor: ColorResource.appThemeColor1,
+                          backgroundColor: surfaceColor,
+                          labelStyle: AppStyles.medium.copyWith(
+                            fontSize: 13,
+                            color: isSelected ? Colors.white : textColor,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            side: BorderSide(
+                              color: isSelected ? Colors.transparent : borderColor,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Coin List / States
+              Expanded(
+                child: BlocConsumer<CoinBloc, CoinState>(
+                  listener: (context, state) {
+                    if (state is CoinListSuccess) {
+                      setState(() {
+                        _displayedCoins = state.coins;
+                        _currentTab = state.activeTab;
+                      });
+                    } else if (state is MoreCoinsSuccess) {
+                      setState(() {
+                        _displayedCoins = state.coins;
+                      });
+                    } else if (state is CoinSearchSuccess) {
+                      setState(() {
+                        _displayedCoins = state.coins;
+                      });
+                    }
+                  },
+                  builder: (context, state) {
+                    if (state is CoinLoading && _displayedCoins.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(ColorResource.appThemeColor1),
+                        ),
+                      );
+                    }
+
+                    if (state is CoinError && _displayedCoins.isEmpty) {
+                      return const CustomErrorWidget();
+                    }
+
+                    if (_displayedCoins.isEmpty) {
+                      return const CustomEmptyWidget();
+                    }
+
+                    return RefreshIndicator(
+                      onRefresh: () async {
+                        context.read<CoinBloc>().add(RefreshCoinsList());
+                      },
+                      color: ColorResource.appThemeColor1,
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                        itemCount: _displayedCoins.length + (state is MoreCoinsSuccess && state.hasMore ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index >= _displayedCoins.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              child: Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          }
+
+                          final coin = _displayedCoins[index];
+                          return _buildFuturisticCoinCard(context, coin, surfaceColor, borderColor, textColor, subTextColor);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMetricPill(String label, String value, Color accentColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: ColorResource.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: ColorResource.border),
-        boxShadow: AppShadows.card,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: AppStyles.regular.copyWith(fontSize: 12, color: ColorResource.textSecondary)),
-          Text(value, style: AppStyles.semiBold.copyWith(fontSize: 12, color: accentColor)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFuturisticCoinCard(BuildContext context, CoinMarketListResponse coin) {
+  Widget _buildFuturisticCoinCard(
+    BuildContext context,
+    CoinMarketListResponse coin,
+    Color surfaceColor,
+    Color borderColor,
+    Color textColor,
+    Color subTextColor,
+  ) {
     final priceChange = coin.priceChangePercentage24h ?? 0.0;
     final isPositive = priceChange >= 0;
     final price = coin.currentPrice ?? 0.0;
+    final marketCap = coin.marketCap ?? 0.0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: ColorResource.surface,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: AppShadows.card,
-        border: Border.all(color: ColorResource.border, width: 1),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Material(
         color: Colors.transparent,
@@ -256,89 +285,75 @@ class _CoinListScreenState extends State<CoinListScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.lg),
           onTap: () {
-            // Navigate to Coin Detail Screen
-            // Note: CoinDetailScreen accepts CoinModel or we can pass coin data
-            // Let's check CoinDetailScreen constructor if needed or pass converted model.
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CoinDetailScreen(
+                  coinId: coin.id,
+                  coinName: coin.name,
+                ),
+              ),
+            );
           },
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                // Rank Badge
+                // Rank
                 Container(
                   width: 30,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    '#${coin.marketCapRank ?? '-'}',
-                    style: AppStyles.medium.copyWith(fontSize: 12, color: ColorResource.textSecondary),
+                    '${coin.marketCapRank ?? '-'}',
+                    style: AppStyles.medium.copyWith(fontSize: 12, color: subTextColor),
                   ),
                 ),
-                // Coin Logo with glow
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: ColorResource.appThemeColor1.withOpacity(0.15),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    child: Image.network(
-                      coin.image,
-                      width: 40,
-                      height: 40,
-                      errorBuilder: (_, __, ___) => const CircleAvatar(
-                        radius: 20,
-                        backgroundColor: ColorResource.appThemeColor1,
-                        child: Icon(Icons.currency_bitcoin, color: Colors.white, size: 20),
-                      ),
+                // Logo
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  child: Image.network(
+                    coin.image,
+                    width: 38,
+                    height: 38,
+                    errorBuilder: (context, error, stackTrace) => const CircleAvatar(
+                      radius: 19,
+                      backgroundColor: ColorResource.appThemeColor1,
+                      child: Icon(Icons.currency_bitcoin, color: Colors.white, size: 18),
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
-                // Name & Symbol
+                const SizedBox(width: 12),
+                // Name & Market Cap
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         coin.name,
-                        style: AppStyles.semiBold.copyWith(fontSize: 15, color: ColorResource.textPrimary),
+                        style: AppStyles.semiBold.copyWith(fontSize: 15, color: textColor),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 3),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: ColorResource.appThemeColor1.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          coin.symbol.toUpperCase(),
-                          style: AppStyles.medium.copyWith(fontSize: 10, color: ColorResource.appThemeColor1),
-                        ),
+                      const SizedBox(height: 2),
+                      Text(
+                        marketCap > 0 ? 'MCap: ${_formatLargeNumber(marketCap)}' : coin.symbol.toUpperCase(),
+                        style: AppStyles.regular.copyWith(fontSize: 12, color: subTextColor),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Price & 24h Change Badge
+                // Price & 24h Change
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       _formatPrice(price),
-                      style: AppStyles.semiBold.copyWith(fontSize: 15, color: ColorResource.textPrimary),
+                      style: AppStyles.semiBold.copyWith(fontSize: 15, color: textColor),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: isPositive ? ColorResource.success.withOpacity(0.12) : ColorResource.danger.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -347,11 +362,10 @@ class _CoinListScreenState extends State<CoinListScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-                            size: 14,
+                            isPositive ? Icons.arrow_drop_up_rounded : Icons.arrow_drop_down_rounded,
+                            size: 16,
                             color: isPositive ? ColorResource.success : ColorResource.danger,
                           ),
-                          const SizedBox(width: 2),
                           Text(
                             '${isPositive ? '+' : ''}${priceChange.toStringAsFixed(2)}%',
                             style: AppStyles.medium.copyWith(
@@ -377,6 +391,18 @@ class _CoinListScreenState extends State<CoinListScreen> {
       return '\$${price.toStringAsFixed(price > 1000 ? 2 : 2)}';
     } else {
       return '\$${price.toStringAsFixed(4)}';
+    }
+  }
+
+  String _formatLargeNumber(double number) {
+    if (number >= 1e12) {
+      return '\$${(number / 1e12).toStringAsFixed(2)}T';
+    } else if (number >= 1e9) {
+      return '\$${(number / 1e9).toStringAsFixed(2)}B';
+    } else if (number >= 1e6) {
+      return '\$${(number / 1e6).toStringAsFixed(2)}M';
+    } else {
+      return '\$${number.toStringAsFixed(0)}';
     }
   }
 }

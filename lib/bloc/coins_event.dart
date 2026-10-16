@@ -11,3 +11,9 @@ class SearchCoins extends CoinEvent {
 }
 
 class RefreshCoinsList extends CoinEvent {}
+
+class FilterCoinsTab extends CoinEvent {
+  final String tab; // 'All', 'Trending', 'Top Gainers', 'Top Losers', 'Watchlist'
+
+  FilterCoinsTab(this.tab);
+}

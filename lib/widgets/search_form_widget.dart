@@ -18,25 +18,31 @@ class SearchFormWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? const Color(0xFF16161A) : ColorResource.surface;
+    final borderColor = isDark ? const Color(0xFF27272A) : ColorResource.border;
+    final textColor = isDark ? Colors.white : ColorResource.textPrimary;
+    final hintColor = isDark ? const Color(0xFF9CA3AF) : ColorResource.textSecondary;
+
     return Container(
       decoration: BoxDecoration(
-        color: ColorResource.surface,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: AppShadows.card,
-        border: Border.all(color: ColorResource.border, width: 1),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         style: AppStyles.regular.copyWith(
           fontSize: 14,
-          color: ColorResource.textPrimary,
+          color: textColor,
         ),
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: AppStyles.regular.copyWith(
             fontSize: 14,
-            color: ColorResource.textSecondary,
+            color: hintColor,
           ),
           prefixIcon: const Icon(
             Icons.search_rounded,
@@ -45,9 +51,9 @@ class SearchFormWidget extends StatelessWidget {
           ),
           suffixIcon: controller.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.clear_rounded,
-                    color: ColorResource.textSecondary,
+                    color: hintColor,
                     size: 20,
                   ),
                   onPressed: () {

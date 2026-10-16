@@ -5,6 +5,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../utils/app_strings.dart';
 import '../local/secure_storage.dart';
 import '../response/coin_market_list_response.dart';
+import '../response/coin_details_response.dart';
+import '../response/coin_chart_response.dart';
+import '../response/trend_coins_response.dart';
+import '../response/top_gainers_losers_response.dart';
 import 'logging_interceptor.dart';
 
 class ApiProvider {
@@ -30,7 +34,7 @@ class ApiProvider {
     _dio?.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (options.path.startsWith('/coins/')) {
+          if (options.path.startsWith('/coins/') || options.path.startsWith('/search/')) {
             options.headers.remove('authorization');
             return handler.next(options);
           }
@@ -115,4 +119,54 @@ class ApiProvider {
     }
   }
 
+  Future<CoinDetailsResponse> fetchCoinDetails(String coinId) async {
+    try {
+      final response = await _dio!.get('${AppStrings.coinDetail}$coinId');
+      if (response.statusCode == 200) {
+        return CoinDetailsResponse.fromJson(response.data);
+      }
+      throw Exception('Failed to fetch coin details: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Failed to fetch coin details: ${_handleError(e)}');
+    }
+  }
+
+  Future<MarketChartResponse> fetchCoinChart(String coinId, {String days = '7'}) async {
+    try {
+      final response = await _dio!.get(
+        '${AppStrings.coinDetail}$coinId${AppStrings.coinChart}',
+        queryParameters: {'vs_currency': 'usd', 'days': days},
+      );
+      if (response.statusCode == 200) {
+        return MarketChartResponse.fromJson(response.data);
+      }
+      throw Exception('Failed to fetch coin chart: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Failed to fetch coin chart: ${_handleError(e)}');
+    }
+  }
+
+  Future<TrendingCoinResponse> fetchTrendingCoins() async {
+    try {
+      final response = await _dio!.get(AppStrings.trending);
+      if (response.statusCode == 200) {
+        return TrendingCoinResponse.fromJson(response.data);
+      }
+      throw Exception('Failed to fetch trending coins: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Failed to fetch trending coins: ${_handleError(e)}');
+    }
+  }
+
+  Future<TopGainersLosersResponse> fetchTopGainersLosers() async {
+    try {
+      final response = await _dio!.get(AppStrings.topGainersLosers);
+      if (response.statusCode == 200) {
+        return TopGainersLosersResponse.fromJson(response.data);
+      }
+      throw Exception('Failed to fetch top gainers/losers: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Failed to fetch top gainers/losers: ${_handleError(e)}');
+    }
+  }
 }

@@ -19,8 +19,9 @@ class CoinError extends CoinState {
 
 class CoinListSuccess extends CoinState {
   final List<CoinMarketListResponse> coins;
+  final String activeTab;
 
-  CoinListSuccess(this.coins);
+  CoinListSuccess(this.coins, {this.activeTab = 'All'});
 }
 
 class MoreCoinsSuccess extends CoinState {
