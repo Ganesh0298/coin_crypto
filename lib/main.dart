@@ -1,5 +1,6 @@
-import 'package:coin_pilot/bloc/coins_bloc.dart';
-import 'package:coin_pilot/repo/coins_repo.dart';
+
+import 'package:coinCrypto/bloc/coins_bloc.dart';
+import 'package:coinCrypto/repo/coins_repo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -60,7 +61,7 @@ class MyApp extends StatelessWidget {
                 secondary: ColorResource.appThemeColor2,
                 surface: Color(0xFF121212),
               ),
-              scaffoldBackgroundColor: const Color(0xFF000000), // True black mode
+              scaffoldBackgroundColor: const Color(0xFF000000),
               cardColor: const Color(0xFF16161A),
               dividerColor: const Color(0xFF27272A),
               useMaterial3: true,

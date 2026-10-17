@@ -2,6 +2,7 @@ import '../data/api/api_provider.dart';
 import '../data/response/coin_market_list_response.dart';
 import '../data/response/coin_details_response.dart';
 import '../data/response/coin_chart_response.dart';
+import '../data/response/global_market_response.dart';
 import '../data/response/trend_coins_response.dart';
 import '../data/response/top_gainers_losers_response.dart';
 
@@ -33,4 +34,10 @@ class CoinRepository {
   Future<TopGainersLosersResponse> fetchTopGainersLosers() {
     return apiProvider.fetchTopGainersLosers();
   }
+
+  Future<GlobalMarketResponse> fetchGlobalMarket() {
+    return apiProvider.fetchGlobalMarket();
+  }
+
+
 }

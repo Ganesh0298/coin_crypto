@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../data/response/coin_market_list_response.dart';
+import '../data/response/coin_market_list_response.dart';
 import '../repo/coins_repo.dart';
 import 'coins_event.dart';
 import 'coins_state.dart';
@@ -17,12 +17,82 @@ class CoinBloc extends Bloc<CoinEvent, CoinState> {
   List<CoinMarketListResponse> _trendingCoins = [];
   List<CoinMarketListResponse> _topGainers = [];
   List<CoinMarketListResponse> _topLosers = [];
-  
+
   String _activeTab = 'All';
   String _searchQuery = '';
 
+
+  String _sortBy = 'market_cap';
+  bool _sortAscending = false;
+  double? _minPrice;
+  double? _maxPrice;
+  double? _minVolume;
+  int? _rankLimit;
+
   String _cleanError(Object error) =>
       error.toString().replaceFirst('Exception: ', '');
+
+  List<CoinMarketListResponse> _getActiveList() {
+    if (_activeTab == 'Trending') {
+      return _trendingCoins;
+    } else if (_activeTab == 'Top Gainers') {
+      return _topGainers;
+    } else if (_activeTab == 'Top Losers') {
+      return _topLosers;
+    }
+    return _allCoins;
+  }
+
+  List<CoinMarketListResponse> _applyFiltersAndSorting(List<CoinMarketListResponse> source) {
+    var list = List<CoinMarketListResponse>.from(source);
+
+
+    if (_searchQuery.isNotEmpty) {
+      list = list.where((coin) {
+        return coin.name.toLowerCase().contains(_searchQuery) ||
+            coin.symbol.toLowerCase().contains(_searchQuery);
+      }).toList();
+    }
+
+    if (_minPrice != null) {
+      list = list.where((coin) => (coin.currentPrice ?? 0.0) >= _minPrice!).toList();
+    }
+    if (_maxPrice != null) {
+      list = list.where((coin) => (coin.currentPrice ?? 0.0) <= _maxPrice!).toList();
+    }
+
+
+    if (_minVolume != null) {
+      list = list.where((coin) => (coin.totalVolume ?? 0.0) >= _minVolume!).toList();
+    }
+
+
+    if (_rankLimit != null) {
+      list = list.where((coin) => (coin.marketCapRank ?? 99999) <= _rankLimit!).toList();
+    }
+
+    list.sort((a, b) {
+      int cmp = 0;
+      switch (_sortBy) {
+        case 'price':
+          cmp = (a.currentPrice ?? 0.0).compareTo(b.currentPrice ?? 0.0);
+          break;
+        case 'change_24h':
+          cmp = (a.priceChangePercentage24h ?? 0.0).compareTo(b.priceChangePercentage24h ?? 0.0);
+          break;
+        case 'volume':
+          cmp = (a.totalVolume ?? 0.0).compareTo(b.totalVolume ?? 0.0);
+          break;
+        case 'market_cap':
+        default:
+          cmp = (a.marketCap ?? 0.0).compareTo(b.marketCap ?? 0.0);
+          break;
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+
+    return list;
+  }
 
   CoinBloc(this.coinRepository) : super(CoinInitial()) {
     on<FetchCoinsList>((event, emit) async {
@@ -40,14 +110,16 @@ class CoinBloc extends Bloc<CoinEvent, CoinState> {
         _searchQuery = '';
         _activeTab = 'All';
 
-        emit(CoinListSuccess(_allCoins, activeTab: _activeTab));
+        final processed = _applyFiltersAndSorting(_allCoins);
+        emit(CoinListSuccess(processed, activeTab: _activeTab));
       } catch (e) {
         emit(CoinError(_cleanError(e), 'FetchCoinsList'));
       }
     });
 
     on<FetchMoreCoins>((event, emit) async {
-      if (!_hasMore || _isLoadingMore || _searchQuery.isNotEmpty || _activeTab != 'All') {
+      if (!_hasMore || _isLoadingMore || _searchQuery.isNotEmpty ||
+          _activeTab != 'All') {
         return;
       }
 
@@ -68,9 +140,10 @@ class CoinBloc extends Bloc<CoinEvent, CoinState> {
 
         _hasMore = newCoins.length == _perPage;
 
+        final processed = _applyFiltersAndSorting(_allCoins);
         emit(
           MoreCoinsSuccess(
-            coins: _allCoins,
+            coins: processed,
             hasMore: _hasMore,
           ),
         );
@@ -83,21 +156,9 @@ class CoinBloc extends Bloc<CoinEvent, CoinState> {
 
     on<SearchCoins>((event, emit) {
       _searchQuery = event.query.trim().toLowerCase();
-
-      final targetList = _activeTab == 'Trending'
-          ? _trendingCoins
-          : _activeTab == 'Top Gainers'
-              ? _topGainers
-              : _activeTab == 'Top Losers'
-                  ? _topLosers
-                  : _allCoins;
-
-      final filteredCoins = targetList.where((coin) {
-        return coin.name.toLowerCase().contains(_searchQuery) ||
-            coin.symbol.toLowerCase().contains(_searchQuery);
-      }).toList();
-
-      emit(CoinSearchSuccess(filteredCoins));
+      final activeList = _getActiveList();
+      final processed = _applyFiltersAndSorting(activeList);
+      emit(CoinSearchSuccess(processed));
     });
 
     on<FilterCoinsTab>((event, emit) async {
@@ -124,47 +185,44 @@ class CoinBloc extends Bloc<CoinEvent, CoinState> {
         } catch (e) {
           _trendingCoins = _allCoins.take(5).toList();
         }
-      } else if ((_activeTab == 'Top Gainers' || _activeTab == 'Top Losers') && _topGainers.isEmpty) {
-        emit(CoinLoading(loadingFor: 'FetchGainersLosers'));
-        try {
-          final res = await coinRepository.fetchTopGainersLosers();
-          _topGainers = res.topGainers.map((g) => CoinMarketListResponse(
-            id: g.id,
-            symbol: g.symbol,
-            name: g.name,
-            image: g.image,
-            currentPrice: g.usd,
-            marketCapRank: g.marketCapRank,
-            priceChangePercentage24h: g.usd24hChange,
-            totalVolume: g.usd24hVol,
-          )).toList();
-
-          _topLosers = res.topLosers.map((l) => CoinMarketListResponse(
-            id: l.id,
-            symbol: l.symbol,
-            name: l.name,
-            image: l.image,
-            currentPrice: l.usd,
-            marketCapRank: l.marketCapRank,
-            priceChangePercentage24h: l.usd24hChange,
-            totalVolume: l.usd24hVol,
-          )).toList();
-        } catch (e) {
-          _topGainers = List.from(_allCoins)..sort((a, b) => (b.priceChangePercentage24h ?? 0).compareTo(a.priceChangePercentage24h ?? 0));
-          _topLosers = List.from(_allCoins)..sort((a, b) => (a.priceChangePercentage24h ?? 0).compareTo(b.priceChangePercentage24h ?? 0));
-        }
       }
 
-      List<CoinMarketListResponse> activeList = _allCoins;
-      if (_activeTab == 'Trending') {
-        activeList = _trendingCoins;
-      } else if (_activeTab == 'Top Gainers') {
-        activeList = _topGainers;
-      } else if (_activeTab == 'Top Losers') {
-        activeList = _topLosers;
-      }
+      final activeList = _getActiveList();
+      final processed = _applyFiltersAndSorting(activeList);
+      emit(CoinListSuccess(processed, activeTab: _activeTab));
+    });
 
-      emit(CoinListSuccess(activeList, activeTab: _activeTab));
+    on<SortCoins>((event, emit) {
+      _sortBy = event.sortBy;
+      _sortAscending = event.isAscending;
+
+      final activeList = _getActiveList();
+      final processed = _applyFiltersAndSorting(activeList);
+      emit(CoinListSuccess(processed, activeTab: _activeTab));
+    });
+
+    on<ApplyAdvancedFilters>((event, emit) {
+      _minPrice = event.minPrice;
+      _maxPrice = event.maxPrice;
+      _minVolume = event.minVolume;
+      _rankLimit = event.rankLimit;
+
+      final activeList = _getActiveList();
+      final processed = _applyFiltersAndSorting(activeList);
+      emit(CoinListSuccess(processed, activeTab: _activeTab));
+    });
+
+    on<ResetCoinFilters>((event, emit) {
+      _minPrice = null;
+      _maxPrice = null;
+      _minVolume = null;
+      _rankLimit = null;
+      _sortBy = 'market_cap';
+      _sortAscending = false;
+
+      final activeList = _getActiveList();
+      final processed = _applyFiltersAndSorting(activeList);
+      emit(CoinListSuccess(processed, activeTab: _activeTab));
     });
 
     on<RefreshCoinsList>((event, emit) async {
@@ -185,9 +243,56 @@ class CoinBloc extends Bloc<CoinEvent, CoinState> {
         _searchQuery = '';
         _activeTab = 'All';
 
-        emit(CoinListSuccess(_allCoins, activeTab: _activeTab));
+        final processed = _applyFiltersAndSorting(_allCoins);
+        emit(CoinListSuccess(processed, activeTab: _activeTab));
       } catch (e) {
         emit(CoinError(_cleanError(e), 'RefreshCoinsList'));
+      }
+    });
+
+    on<FetchCoinDetailData>((event, emit) async {
+      emit(CoinDetailLoading());
+      try {
+        final detailsFuture = coinRepository.fetchCoinDetails(event.coinId);
+        final chartFuture = coinRepository.fetchCoinChart(
+            event.coinId, days: event.days);
+
+        final results = await Future.wait([detailsFuture, chartFuture]);
+
+        emit(CoinDetailSuccess(
+          details: results[0] as dynamic,
+          chart: results[1] as dynamic,
+          selectedDays: event.days,
+        ));
+      } catch (e) {
+        emit(CoinDetailError(_cleanError(e)));
+      }
+    });
+
+    on<ChangeChartTimeframe>((event, emit) async {
+      final currentState = state;
+      if (currentState is CoinDetailSuccess) {
+        try {
+          final chart = await coinRepository.fetchCoinChart(
+              event.coinId, days: event.days);
+          emit(CoinDetailSuccess(
+            details: currentState.details,
+            chart: chart,
+            selectedDays: event.days,
+          ));
+        } catch (e) {
+
+        }
+      }
+    });
+
+    on<FetchGlobalMarketData>((event, emit) async {
+      emit(GlobalMarketLoading());
+      try {
+        final globalMarket = await coinRepository.fetchGlobalMarket();
+        emit(GlobalListSuccess(globalMarket));
+      } catch (e) {
+        emit(GlobalMarketError(_cleanError(e)));
       }
     });
   }

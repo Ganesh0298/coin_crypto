@@ -38,6 +38,8 @@ class CoinDetailsResponse {
   final int? marketCapRank;
   final int? marketCapRankWithRehypothecated;
 
+  final MarketData? marketData;
+
   CoinDetailsResponse({
     required this.id,
     required this.symbol,
@@ -70,6 +72,7 @@ class CoinDetailsResponse {
     this.watchlistPortfolioUsers,
     this.marketCapRank,
     this.marketCapRankWithRehypothecated,
+    this.marketData,
   });
 
   factory CoinDetailsResponse.fromJson(Map<String, dynamic> json) {
@@ -138,6 +141,9 @@ class CoinDetailsResponse {
       marketCapRankWithRehypothecated: toInt(
         json['market_cap_rank_with_rehypothecated'],
       ),
+      marketData: json['market_data'] != null && json['market_data'] is Map
+          ? MarketData.fromJson(Map<String, dynamic>.from(json['market_data']))
+          : null,
     );
   }
 
@@ -175,5 +181,90 @@ class CoinDetailsResponse {
       'market_cap_rank': marketCapRank,
       'market_cap_rank_with_rehypothecated': marketCapRankWithRehypothecated,
     };
+  }
+}
+
+class MarketData {
+  final double? currentPriceUsd;
+  final double? marketCapUsd;
+  final double? totalVolumeUsd;
+  final double? high24hUsd;
+  final double? low24hUsd;
+  final double? priceChangePercentage24h;
+  final double? priceChangePercentage7d;
+  final double? priceChangePercentage30d;
+  final double? priceChangePercentage1y;
+  final double? circulatingSupply;
+  final double? totalSupply;
+  final double? maxSupply;
+  final double? athUsd;
+  final double? athChangePercentageUsd;
+  final String? athDateUsd;
+  final double? atlUsd;
+  final double? atlChangePercentageUsd;
+  final String? atlDateUsd;
+  final double? fullyDilutedValuationUsd;
+
+  MarketData({
+    this.currentPriceUsd,
+    this.marketCapUsd,
+    this.totalVolumeUsd,
+    this.high24hUsd,
+    this.low24hUsd,
+    this.priceChangePercentage24h,
+    this.priceChangePercentage7d,
+    this.priceChangePercentage30d,
+    this.priceChangePercentage1y,
+    this.circulatingSupply,
+    this.totalSupply,
+    this.maxSupply,
+    this.athUsd,
+    this.athChangePercentageUsd,
+    this.athDateUsd,
+    this.atlUsd,
+    this.atlChangePercentageUsd,
+    this.atlDateUsd,
+    this.fullyDilutedValuationUsd,
+  });
+
+  factory MarketData.fromJson(Map<String, dynamic> json) {
+    double? toDouble(dynamic value) => value is num ? value.toDouble() : null;
+
+    Map<String, dynamic>? toMap(dynamic val) => val is Map ? Map<String, dynamic>.from(val) : null;
+
+    final currentPrice = toMap(json['current_price']);
+    final marketCap = toMap(json['market_cap']);
+    final totalVolume = toMap(json['total_volume']);
+    final high24h = toMap(json['high_24h']);
+    final low24h = toMap(json['low_24h']);
+    final ath = toMap(json['ath']);
+    final athChangePercentage = toMap(json['ath_change_percentage']);
+    final athDate = toMap(json['ath_date']);
+    final atl = toMap(json['atl']);
+    final atlChangePercentage = toMap(json['atl_change_percentage']);
+    final atlDate = toMap(json['atl_date']);
+    final fdv = toMap(json['fully_diluted_valuation']);
+
+    return MarketData(
+      currentPriceUsd: currentPrice != null ? toDouble(currentPrice['usd']) : null,
+      marketCapUsd: marketCap != null ? toDouble(marketCap['usd']) : null,
+      totalVolumeUsd: totalVolume != null ? toDouble(totalVolume['usd']) : null,
+      high24hUsd: high24h != null ? toDouble(high24h['usd']) : null,
+      low24hUsd: low24h != null ? toDouble(low24h['usd']) : null,
+      priceChangePercentage24h: toDouble(json['price_change_percentage_24h']),
+      priceChangePercentage7d: toDouble(json['price_change_percentage_7d']),
+      priceChangePercentage30d: toDouble(json['price_change_percentage_30d']),
+      priceChangePercentage1y: toDouble(json['price_change_percentage_1y']),
+      circulatingSupply: toDouble(json['circulating_supply']),
+      totalSupply: toDouble(json['total_supply']),
+      maxSupply: toDouble(json['max_supply']),
+      athUsd: ath != null ? toDouble(ath['usd']) : null,
+      athChangePercentageUsd: athChangePercentage != null ? toDouble(athChangePercentage['usd']) : null,
+      athDateUsd: athDate != null ? athDate['usd'] as String? : null,
+      atlUsd: atl != null ? toDouble(atl['usd']) : null,
+      atlChangePercentageUsd: atlChangePercentage != null ? toDouble(atlChangePercentage['usd']) : null,
+      atlDateUsd: atlDate != null ? atlDate['usd'] as String? : null,
+      fullyDilutedValuationUsd: fdv != null ? toDouble(fdv['usd']) : null,
+    );
   }
 }

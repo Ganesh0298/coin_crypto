@@ -7,5 +7,6 @@ class AppStrings {
   static const String coinDetail = "/coins/";
   static const String coinChart = "/market_chart";
   static const String trending  = "/search/trending";
+  static const String global  = "/global";
   static const String topGainersLosers  = "/coins/top_gainers_losers";
 }

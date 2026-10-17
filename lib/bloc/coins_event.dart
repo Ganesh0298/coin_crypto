@@ -13,7 +13,46 @@ class SearchCoins extends CoinEvent {
 class RefreshCoinsList extends CoinEvent {}
 
 class FilterCoinsTab extends CoinEvent {
-  final String tab; // 'All', 'Trending', 'Top Gainers', 'Top Losers', 'Watchlist'
+  final String tab;
 
   FilterCoinsTab(this.tab);
 }
+
+class SortCoins extends CoinEvent {
+  final String sortBy;
+  final bool isAscending;
+
+  SortCoins({required this.sortBy, this.isAscending = false});
+}
+
+class ApplyAdvancedFilters extends CoinEvent {
+  final double? minPrice;
+  final double? maxPrice;
+  final double? minVolume;
+  final int? rankLimit;
+
+  ApplyAdvancedFilters({
+    this.minPrice,
+    this.maxPrice,
+    this.minVolume,
+    this.rankLimit,
+  });
+}
+
+class ResetCoinFilters extends CoinEvent {}
+
+class FetchCoinDetailData extends CoinEvent {
+  final String coinId;
+  final String days;
+
+  FetchCoinDetailData({required this.coinId, this.days = '7'});
+}
+
+class ChangeChartTimeframe extends CoinEvent {
+  final String coinId;
+  final String days;
+
+  ChangeChartTimeframe({required this.coinId, required this.days});
+}
+
+class FetchGlobalMarketData extends CoinEvent {}

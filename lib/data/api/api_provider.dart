@@ -1,12 +1,10 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../utils/app_strings.dart';
 import '../local/secure_storage.dart';
 import '../response/coin_market_list_response.dart';
 import '../response/coin_details_response.dart';
 import '../response/coin_chart_response.dart';
+import '../response/global_market_response.dart';
 import '../response/trend_coins_response.dart';
 import '../response/top_gainers_losers_response.dart';
 import 'logging_interceptor.dart';
@@ -14,7 +12,6 @@ import 'logging_interceptor.dart';
 class ApiProvider {
   Dio? _dio;
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
   ApiProvider() {
     final BaseOptions options = BaseOptions(
       baseUrl: AppStrings.baseUrl,
@@ -34,7 +31,9 @@ class ApiProvider {
     _dio?.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (options.path.startsWith('/coins/') || options.path.startsWith('/search/')) {
+          if (options.path.startsWith('/coins/') ||
+              options.path.startsWith('/search/') ||
+              options.path.startsWith('/global')) {
             options.headers.remove('authorization');
             return handler.next(options);
           }
@@ -167,6 +166,18 @@ class ApiProvider {
       throw Exception('Failed to fetch top gainers/losers: ${response.statusCode}');
     } catch (e) {
       throw Exception('Failed to fetch top gainers/losers: ${_handleError(e)}');
+    }
+  }
+
+  Future<GlobalMarketResponse> fetchGlobalMarket() async {
+    try {
+      final response = await _dio!.get(AppStrings.global);
+      if (response.statusCode == 200) {
+        return GlobalMarketResponse.fromJson(response.data as Map<String, dynamic>);
+      }
+      throw Exception('Failed to fetch global market: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Failed to fetch global market: ${_handleError(e)}');
     }
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_styles.dart';
+import '../../utils/app_responsive.dart';
+import '../../utils/custom_navigation.dart';
 
 import 'main_navigation_screen.dart';
 
@@ -34,19 +36,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to MainNavigationScreen after 2.5 seconds
+    // Navigate to MainNavigationScreen after 2.5 seconds using CustomNavigation
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const MainNavigationScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 600),
-          ),
-        );
+        CustomNavigation.pushReplacement(context, const MainNavigationScreen());
       }
     });
   }
@@ -73,46 +66,38 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               children: [
                 // Glowing Logo Container
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(Responsive.padding(context, 24)),
                   decoration: BoxDecoration(
                     gradient: ColorResource.headerGradient,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: ColorResource.appThemeColor1.withOpacity(0.4),
+                        color: ColorResource.appThemeColor1.withValues(alpha: 0.4),
                         blurRadius: 30,
                         spreadRadius: 5,
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.currency_bitcoin_rounded,
-                    size: 64,
+                    size: Responsive.padding(context, 64),
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: Responsive.padding(context, 24)),
                 Text(
                   'Coin Crypto',
                   style: AppStyles.bold.copyWith(
-                    fontSize: 26,
+                    fontSize: Responsive.fontSize(context, 26),
                     color: isDark ? Colors.white : ColorResource.textPrimary,
                     letterSpacing: 1.0,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Advanced Crypto Research',
-                  style: AppStyles.regular.copyWith(
-                    fontSize: 14,
-                    color: isDark ? const Color(0xFF9CA3AF) : ColorResource.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 36),
-                const SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(
+                SizedBox(height: Responsive.padding(context, 8)),
+                SizedBox(
+                  width: Responsive.padding(context, 32),
+                  height: Responsive.padding(context, 32),
+                  child: const CircularProgressIndicator(
                     strokeWidth: 2.5,
                     valueColor: AlwaysStoppedAnimation<Color>(ColorResource.appThemeColor1),
                   ),
