@@ -119,7 +119,7 @@ class _CoinListScreenState extends State<CoinListScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
                               ),
-                              child: Icon(Icons.rocket_launch_rounded, color: Colors.white, size: Responsive.padding(context, 24)),
+                              child: Icon(Icons.currency_bitcoin, color: Colors.white, size: Responsive.padding(context, 24)),
                             ),
                             SizedBox(width: Responsive.padding(context, 12)),
                             Column(
